@@ -1106,6 +1106,19 @@ function test_running_process($app, $global) {
             warn "The following instances of `"$app`" are still running. Scoop is configured to ignore this condition."
             Write-Host $running_processes
             return $false
+        } elseif (get_config STOP_RUNNING_PROCESSES) {
+            warn "The following instances of `"$app`" are still running. Scoop is configured to auto stop processes."
+            Write-Host $running_processes
+            Get-Process | Where-Object { $_.Path -like "$processdir\*" } | ForEach-Object {
+                try {
+                    Stop-Process -Id $_.Id -Force -ErrorAction Stop
+                }
+                catch {
+                    error "Stop process failed: $($_.Name) (PID: $($_.Id)): $_"
+                    return $true
+                }
+            }
+            return $false
         } else {
             error "The following instances of `"$app`" are still running. Close them and try again."
             Write-Host $running_processes
